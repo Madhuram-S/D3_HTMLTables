@@ -5,19 +5,31 @@ var stateData = states;
 // Get instances of all the required elements from HTML Page (table, tbody, input field, submit button)
 var table  = d3.select("#ufo-table");   
 var tbody = table.select("tbody");   
-var inpFld = d3.select("#datetime");
+var inpFld_dt = d3.select("#datetime");
 var submitBtn = d3.select("#filter-btn"); 
+var clearBtn = d3.select("#clear-filter-btn"); 
 
-var selectGrp = d3.select("#state");
+var ddwn_city = d3.select("#city");
+var ddwn_state = d3.select("#state");
+var ddwn_shp = d3.select("#shape");
 
-// YOUR CODE HERE!
+
+// Util function to extract unique values from an array
+function onlyUnique(value, index, self) { 
+    // console.log(value+","+ index+","+ self);
+    return self.indexOf(value) === index;
+}
 
 // Create Filters
-// Create state dropdown filter
+// common function to populate select drop down list
 function dropDown(selElement, sel_arr){
-    selElement.append("option")
-                .attr("value","ALL")
-                .text("All");
+    selElement.append("option").attr("value","ALL").text("All"); // Default Select Option
+        
+    // Get unique records only for the drop down - precaution to avoid duplicate drop down entries
+    // also sort by asc order
+    sel_arr = sel_arr.filter(onlyUnique).sort();
+
+    //populate the dropdown list
     sel_arr.map(s => {
         selElement.append("option")
                 .attr("value",s)
@@ -26,18 +38,7 @@ function dropDown(selElement, sel_arr){
     });
     
 };
-
-function loadAllFilters(){
-    dropDown(selectGrp, stateData); // dropdown for state
-
-    //dropdown for cities 
-    // get the city array and filte by Unique
-    // usage example:
-    var a = ['a', 1, 'a', 2, '1'];
-    var unique = a.filter( onlyUnique ); // returns ['a', 1, 2, '1']    
-};
-
-       
+// Function to add table data based on a given array
 function writeTable(inputData){
     inputData.map(function(row){
         var tr = tbody.append("tr");
@@ -47,12 +48,9 @@ function writeTable(inputData){
         });
     });
 };
-
-function clearTable(){
-    var tr = tbody.selectAll("tr").remove();
-}
-
-
+// Function to clear HTML table 
+function clearTable(){ var tr = tbody.selectAll("tr").remove(); }
+// Function to display Data NOt found Message onto a HTML table
 function writeDataNotFnd(){
     var tr = tbody.append('tr');
     tr.append("td")
@@ -60,44 +58,51 @@ function writeDataNotFnd(){
         .attr("class", "text-center")
         .text("Sorry! We could not find any data matching your search criteria");
 }
-
-function filterByDate(event){
+// Callback function for handling Search button click event 
+function filterData(){
     d3.event.preventDefault();
-    var filtDate = inpFld.property("value");
-    console.log(filtDate);
+    var filtDate = inpFld_dt.property("value");
+    var filtCity = ddwn_city.property("value").toLowerCase();
+    var filtSt = ddwn_state.property("value").toLowerCase();
+    var filtShp = ddwn_shp.property("value").toLowerCase();
+    console.log(`${filtDate}, ${filtCity},${filtSt},${filtShp}`);
 
     // Filter the tableData
-    //OPtion 1
-    // var filtTableData = tableData.filter(r => ((r.datetime === filtDate)&& (r.state === "tx")));
-    //OPtion 2
-    var filtTableData = tableData.filter(r => r.datetime === filtDate);
-                                //  .filter(r => r.state === "tx");
-    console.log(filtTableData);
+    var filtTableData = tableData.filter(r => {
+        return ((filtDate !== ""?r.datetime === filtDate:true) &&
+        (filtCity !== "all"?r.city === filtCity:true) &&
+        (filtSt !== "all"?r.state === filtSt:true) &&
+        (filtShp !== "all"?r.shape === filtShp:true))
+    }); 
 
     // Clear the existing table and rewrite
     clearTable();
-    if(filtTableData.length !== 0){
-        //Call write table again to rewrite the HTML Table with filtered data
-        writeTable(filtTableData);
-    }
-    else{
-        writeDataNotFnd();
-    }
+    // ternary function to check if the search yielded any result
+    filtTableData.length !== 0 ? writeTable(filtTableData) : writeDataNotFnd();
+    
+};
+// Function to reset filters and display all contents in HTML table
+function resetFilters(){
+    d3.event.preventDefault();
+    inpFld_dt.property("value","");
+    d3.select("body").selectAll("option").property("selected",function(d){ return d === "All"; });   
+    // Clear the existing table and rewrite
+    clearTable();
+    // Rewrite All data
+    writeTable(tableData);
 };
 
+// Load all filters in the page by creating dropdown for city, state and shape
+dropDown(ddwn_state, stateData); // dropdown for state     
+dropDown(ddwn_city, tableData.map(c => c.city)); // dropdown for city
+dropDown(ddwn_shp, tableData.map(s => s.shape)); // drop down for sighted shapes
 
-// Load all filters in the page
-loadAllFilters();
-
-// Default when no selection is made
-// Write HTML Table to the <table> tag
+// Load data into HTML table using d3 DOM mapping
 writeTable(tableData);
 
-
-// Filter by date
-// When button is clicked or input field is changed, 
+// Listen for filter events (Click of "Filter Table" button)
+// When button is clicked to filter data by values in input or select fields, 
 // then extract the date to be filtered from input field, filter the data and display the data
-
-// inpFld.on("change",function(){filterByDate(d3.event);});
-submitBtn.on("click", function(){filterByDate(d3.event);});
+submitBtn.on("click", function(){filterData(d3.event);});
+clearBtn.on("click", function(){resetFilters();});
 
