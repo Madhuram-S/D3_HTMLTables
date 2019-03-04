@@ -24,7 +24,7 @@ function onlyUnique(value, index, self) {
 // common function to populate select drop down list
 function dropDown(selElement, sel_arr){
     selElement.append("option").attr("value","ALL").text("All"); // Default Select Option
-        
+
     // Get unique records only for the drop down - precaution to avoid duplicate drop down entries
     // also sort by asc order
     sel_arr = sel_arr.filter(onlyUnique).sort();
@@ -103,6 +103,6 @@ writeTable(tableData);
 // Listen for filter events (Click of "Filter Table" button)
 // When button is clicked to filter data by values in input or select fields, 
 // then extract the date to be filtered from input field, filter the data and display the data
-submitBtn.on("click", function(){filterData(d3.event);});
+submitBtn.on("click", function(){filterData();});
 clearBtn.on("click", function(){resetFilters();});
 
